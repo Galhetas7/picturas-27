@@ -7,6 +7,8 @@ const {
   limparFicheirosVideo,
 } = require("./videoCleanup");
 
+const { devolverOperacoes } = require("./videoQuota");
+
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
@@ -165,6 +167,13 @@ async function tratarResultadoVideo(resposta) {
     );
     if (atualizado) {
       console.log(`[VIDEO] Processo falhou: ${processo.msg_id}`);
+      //UC-02: devolver a quota reservada nesta execução.
+      if (atualizado.reserved_ops > 0) {
+        await devolverOperacoes(
+          String(atualizado.user_id),
+          atualizado.reserved_ops
+        );
+      }
     }
     return;
   }
@@ -246,27 +255,49 @@ async function tratarResultadoVideo(resposta) {
 //AB O utilizador poderá iniciar um novo processamento manualmente.
 async function sinalizarProcessosAbandonados(agora = new Date()) {
   const limite = new Date(agora.getTime() - ABANDONO_MS);
-  const processing = await VideoProcess.updateMany(
+
+  //UC-02: marcar uma a uma para poder devolver a quota de cada execução.
+  const marcar = async (filtro, mensagem) => {
+    const candidatos = await VideoProcess.find(filtro).select("_id status");
+    let total = 0;
+
+    for (const candidato of candidatos) {
+      const atualizado = await VideoProcess.findOneAndUpdate(
+        { _id: candidato._id, status: candidato.status },
+        {
+          $set: {
+            status: "failed",
+            finished_at: agora,
+            error_message: mensagem,
+          },
+        },
+        { new: true }
+      );
+
+      if (!atualizado) continue;
+      total += 1;
+
+      if (atualizado.reserved_ops > 0) {
+        await devolverOperacoes(
+          String(atualizado.user_id),
+          atualizado.reserved_ops
+        );
+      }
+    }
+
+    return total;
+  };
+
+  const processing = await marcar(
     { status: "processing", last_heartbeat_at: { $lt: limite } },
-    {
-      $set: {
-        status: "failed",
-        finished_at: agora,
-        error_message: "Processamento interrompido: atividade do worker expirada.",
-      },
-    }
+    "Processamento interrompido: atividade do worker expirada."
   );
-  const pending = await VideoProcess.updateMany(
+  const pending = await marcar(
     { status: "pending", createdAt: { $lt: limite } },
-    {
-      $set: {
-        status: "failed",
-        finished_at: agora,
-        error_message: "Processamento não iniciado dentro do prazo.",
-      },
-    }
+    "Processamento não iniciado dentro do prazo."
   );
-  return { processing: processing.modifiedCount, pending: pending.modifiedCount };
+
+  return { processing, pending };
 }
 
 //AB Consumidor independente para resultados de vídeo.

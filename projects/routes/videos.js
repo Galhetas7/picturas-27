@@ -62,6 +62,7 @@ const {
   requireVideoProjectVersion,
 } = require("../middleware/videoProjectVersion");
 const { videoUpload } = require("../middleware/videoUpload");
+const { devolverOperacoes } = require("../utils/videoQuota");
 
 const Project = require("../controllers/project");
 const { checkSharePermission } = require("../middleware/shareAuth");
@@ -584,6 +585,8 @@ router.get(
         processId: String(processo._id),
         status: processo.status,
         progress: processo.progress,
+        operation: processo.operation,
+        cut: processo.cut,
         filters: processo.filters,
         outputVideoKey: processo.output_video_key,
         errorMessage: processo.error_message,
@@ -698,6 +701,15 @@ router.delete(
       );
 
       if (processo) {
+        //UC-02: a mudança para "cancelled" é atómica, logo a quota
+        //reservada só é devolvida uma vez.
+        if (processo.reserved_ops > 0) {
+          await devolverOperacoes(
+            String(processo.user_id),
+            processo.reserved_ops
+          );
+        }
+
         return res.status(200).json({
           message: "Processamento de vídeo cancelado.",
           processId: String(processo._id),
