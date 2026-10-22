@@ -46,6 +46,8 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/", videoRoutes);
 //UC-02: corte de vídeo.
 app.use("/", require("./routes/videoCut"));
+//UC-01: alteração da velocidade de vídeo.
+app.use("/", require("./routes/videoSpeed"));
 
 app.use("/", projectsRouter);
 

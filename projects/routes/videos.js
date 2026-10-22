@@ -587,6 +587,7 @@ router.get(
         progress: processo.progress,
         operation: processo.operation,
         cut: processo.cut,
+        speed: processo.speed,
         filters: processo.filters,
         outputVideoKey: processo.output_video_key,
         errorMessage: processo.error_message,

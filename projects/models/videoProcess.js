@@ -55,10 +55,10 @@ const videoProcessSchema = new mongoose.Schema(
 
 
     //modificado - AB
-    //UC-02: o tipo de execução (filtros ou corte).
+    //UC-02/UC-01: o tipo de execução (filtros, corte ou velocidade).
     operation: {
       type: String,
-      enum: ["filters", "cut"],
+      enum: ["filters", "cut", "speed"],
       default: "filters",
     },
 
@@ -66,6 +66,11 @@ const videoProcessSchema = new mongoose.Schema(
     cut: {
       start_seconds: { type: Number, default: null },
       end_seconds: { type: Number, default: null },
+    },
+
+    //UC-01: fator pedido, só usado quando operation = "speed".
+    speed: {
+      factor: { type: Number, default: null },
     },
 
     //UC-02: operações avançadas reservadas, devolvidas se falhar/cancelar.

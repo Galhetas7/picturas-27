@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 import pika
 
-from video_filters import aplicar_filtros, cortar_video
+from video_filters import aplicar_filtros, cortar_video, alterar_velocidade
 
 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
@@ -277,6 +277,14 @@ def processar_pedido(mensagem):
                 parametros["outputVideoURI"],
                 float(parametros["start"]),
                 float(parametros["end"])
+            )
+
+        #UC-01: alteração da velocidade do vídeo completo.
+        elif procedimento == "video_speed":
+            alterar_velocidade(
+                parametros["inputVideoURI"],
+                parametros["outputVideoURI"],
+                float(parametros["factor"])
             )
 
         else:
