@@ -249,6 +249,39 @@ router.post(
   }
 );
 
+//UC-01: iniciar a alteração da velocidade de um vídeo.
+router.post(
+  "/:user/:project/video/speed",
+  auth.checkToken,
+  async (req, res) => {
+    try {
+      const resposta = await axios.post(
+        projectsURL +
+          `${req.params.user}/${req.params.project}/video/speed`,
+        {
+          factor: req.body?.factor,
+        },
+        {
+          httpsAgent,
+          headers: {
+            Authorization: req.headers.authorization,
+            "X-Project-Version": req.headers["x-project-version"],
+          },
+          timeout: 180000,
+        }
+      );
+
+      return res.status(resposta.status).json(resposta.data);
+    } catch (erro) {
+      return forwardAxiosError(
+        res,
+        erro,
+        "Não foi possível iniciar a alteração de velocidade do vídeo."
+      );
+    }
+  }
+);
+
 //AB Consultar o estado de um processamento de vídeo.
 router.get(
   "/:user/:project/video/process/:processId",

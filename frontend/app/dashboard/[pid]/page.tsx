@@ -47,6 +47,7 @@ import { PresetsDialog } from "@/components/presets/presets-dialog";
 import { AiAssistantDialog } from "@/components/assistant/ai-assistant-dialog";
 import { VideoFiltersPanel } from "@/components/project-page/video-filters-panel";
 import { VideoCutPanel } from "@/components/project-page/video-cut-panel";
+import { VideoSpeedPanel } from "@/components/project-page/video-speed-panel";
 
 export default function Project({
   params,
@@ -64,8 +65,9 @@ export default function Project({
   const mode = searchParams.get("mode") ?? "edit";
   //AB Separar a experiência de vídeo do editor de imagens.
   const videoEditor = searchParams.get("editor") === "video";
-  //UC-02: ferramenta de vídeo ativa (filtros ou corte).
-  const videoTool = searchParams.get("tool") === "cut" ? "cut" : "filters";
+  //UC-02/UC-01: ferramenta de vídeo ativa (filtros, corte ou velocidade).
+  const toolParam = searchParams.get("tool");
+  const videoTool = toolParam === "cut" ? "cut" : toolParam === "speed" ? "speed" : "filters";
   // se vier ?owner=... usamos esse userId, senão usamos o próprio utilizador (owner normal)
   const ownerId = searchParams.get("owner") ?? session.user._id;
   const shareId = searchParams.get("share") ?? undefined;
@@ -637,6 +639,10 @@ const handleCancel = () => {
                   const q = new URLSearchParams(searchParams.toString()); q.set("tool", "cut");
                   router.push(`${path}?${q}`);
                 }}>Cortar</Button>
+                <Button type="button" size="sm" variant={videoTool === "speed" ? "secondary" : "ghost"} onClick={() => {
+                  const q = new URLSearchParams(searchParams.toString()); q.set("tool", "speed");
+                  router.push(`${path}?${q}`);
+                }}>Velocidade</Button>
               </>
             )}
           </nav>
@@ -856,6 +862,17 @@ const handleCancel = () => {
         {/* AB: UC-03 visível apenas ao proprietário; preserva o editor de imagens. */}
         {videoEditor && videoTool === "cut" && !shareId && session.user._id === ownerId && (
           <VideoCutPanel
+            userId={session.user._id}
+            projectId={pid}
+            token={session.token}
+            version={project.data.version}
+            serverDuration={project.data.video?.duration_seconds ?? null}
+            onUploaded={async () => { await project.refetch(); }}
+          />
+        )}
+        {/* UC-01: tal como o corte, apenas o proprietário inicia a execução. */}
+        {videoEditor && videoTool === "speed" && !shareId && session.user._id === ownerId && (
+          <VideoSpeedPanel
             userId={session.user._id}
             projectId={pid}
             token={session.token}
