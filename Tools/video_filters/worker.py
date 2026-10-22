@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 import pika
 
-from video_filters import aplicar_filtros
+from video_filters import aplicar_filtros, cortar_video
 
 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
@@ -258,18 +258,29 @@ def processar_pedido(mensagem):
     message_id = mensagem["messageId"]
 
     try:
-        if mensagem.get("procedure") != "video_filters":
-            raise ValueError("Procedimento não suportado.")
-
+        procedimento = mensagem.get("procedure")
         parametros = mensagem["parameters"]
 
-        filtros = converter_filtros(parametros["filters"])
+        if procedimento == "video_filters":
+            filtros = converter_filtros(parametros["filters"])
 
-        aplicar_filtros(
-            parametros["inputVideoURI"],
-            parametros["outputVideoURI"],
-            filtros
-        )
+            aplicar_filtros(
+                parametros["inputVideoURI"],
+                parametros["outputVideoURI"],
+                filtros
+            )
+
+        #UC-02: corte de um trecho do vídeo.
+        elif procedimento == "video_cut":
+            cortar_video(
+                parametros["inputVideoURI"],
+                parametros["outputVideoURI"],
+                float(parametros["start"]),
+                float(parametros["end"])
+            )
+
+        else:
+            raise ValueError("Procedimento não suportado.")
 
         tempo_ms = round((time.monotonic() - inicio) * 1000)
 

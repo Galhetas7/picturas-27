@@ -142,6 +142,100 @@ def aplicar_filtros(
         caminho_temporario.unlink(missing_ok=True)
 
 
+def cortar_video(
+    entrada: str,
+    saida: str,
+    inicio: float,
+    fim: float,
+    timeout: int = 1800,
+) -> None:
+    """
+    UC-02: extrai o trecho [inicio, fim] (em segundos) de um vídeo,
+    produzindo um novo MP4/H.264 com o áudio correspondente.
+
+    O vídeo é recodificado (e não copiado) para que o corte tenha a
+    precisão de um fotograma, em vez de parar apenas em keyframes.
+    A taxa de fotogramas do original é mantida (não se usa -r).
+    """
+
+    caminho_entrada = Path(entrada).resolve()
+    caminho_saida = Path(saida).resolve()
+
+    if not caminho_entrada.is_file():
+        raise FileNotFoundError(
+            f"O vídeo de entrada não existe: {caminho_entrada}"
+        )
+
+    if caminho_entrada.suffix.lower() != ".mp4":
+        raise ValueError("O ficheiro de entrada deve ser MP4.")
+
+    if caminho_saida.suffix.lower() != ".mp4":
+        raise ValueError("O ficheiro de saída deve ser MP4.")
+
+    if caminho_entrada == caminho_saida:
+        raise ValueError("O vídeo original não pode ser substituído.")
+
+    if caminho_saida.exists():
+        raise FileExistsError(
+            f"O ficheiro de saída já existe: {caminho_saida}"
+        )
+
+    for valor in (inicio, fim):
+        if not math.isfinite(valor):
+            raise ValueError("Os instantes devem ser números finitos.")
+
+    if inicio < 0 or inicio >= fim:
+        raise ValueError(
+            "O instante inicial deve ser menor do que o final."
+        )
+
+    if fim - inicio < 1.0:
+        raise ValueError("O trecho deve ter pelo menos 1 segundo.")
+
+    caminho_saida.parent.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.NamedTemporaryFile(
+        suffix=".mp4",
+        prefix=".video_cut_",
+        dir=caminho_saida.parent,
+        delete=False,
+    ) as temporario:
+        caminho_temporario = Path(temporario.name)
+
+    comando = [
+        "ffmpeg",
+        "-hide_banner",
+        "-nostdin",
+        "-y",
+        "-ss", f"{inicio:.3f}",
+        "-i", str(caminho_entrada),
+        "-t", f"{fim - inicio:.3f}",
+        "-map", "0:v:0",
+        "-map", "0:a?",
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-movflags", "+faststart",
+        str(caminho_temporario),
+    ]
+
+    try:
+        # timeout = tempo máximo de 30 minutos (RN9).
+        subprocess.run(comando, check=True, timeout=timeout)
+
+        if (
+            not caminho_temporario.is_file()
+            or caminho_temporario.stat().st_size == 0
+        ):
+            raise RuntimeError("O FFmpeg não produziu o resultado.")
+
+        os.replace(caminho_temporario, caminho_saida)
+
+    finally:
+        caminho_temporario.unlink(missing_ok=True)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Aplicar filtros visuais a vídeos."

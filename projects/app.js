@@ -44,6 +44,8 @@ app.use(express.static(path.join(__dirname, "public")));
 
 //AB Rotas HTTP exclusivas de vídeo.
 app.use("/", videoRoutes);
+//UC-02: corte de vídeo.
+app.use("/", require("./routes/videoCut"));
 
 app.use("/", projectsRouter);
 

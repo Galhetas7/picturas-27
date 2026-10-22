@@ -215,6 +215,40 @@ router.get("/:user/:project/video/saved", auth.checkToken, async (req, res) => {
   }
 });
 
+//UC-02: iniciar o corte de um trecho de um vídeo.
+router.post(
+  "/:user/:project/video/cut",
+  auth.checkToken,
+  async (req, res) => {
+    try {
+      const resposta = await axios.post(
+        projectsURL +
+          `${req.params.user}/${req.params.project}/video/cut`,
+        {
+          start: req.body?.start,
+          end: req.body?.end,
+        },
+        {
+          httpsAgent,
+          headers: {
+            Authorization: req.headers.authorization,
+            "X-Project-Version": req.headers["x-project-version"],
+          },
+          timeout: 180000,
+        }
+      );
+
+      return res.status(resposta.status).json(resposta.data);
+    } catch (erro) {
+      return forwardAxiosError(
+        res,
+        erro,
+        "Não foi possível iniciar o corte do vídeo."
+      );
+    }
+  }
+);
+
 //AB Consultar o estado de um processamento de vídeo.
 router.get(
   "/:user/:project/video/process/:processId",

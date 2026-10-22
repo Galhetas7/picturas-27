@@ -5,7 +5,7 @@ async function publicarProcessamentoVideo(mensagem) {
   if (
     !mensagem ||
     typeof mensagem.messageId !== "string" ||
-    mensagem.procedure !== "video_filters" ||
+    !["video_filters", "video_cut"].includes(mensagem.procedure) ||
     !mensagem.parameters
   ) {
     throw new Error("Mensagem de processamento de vídeo inválida.");

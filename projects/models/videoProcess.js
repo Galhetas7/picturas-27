@@ -55,11 +55,38 @@ const videoProcessSchema = new mongoose.Schema(
 
 
     //modificado - AB
+    //UC-02: o tipo de execução (filtros ou corte).
+    operation: {
+      type: String,
+      enum: ["filters", "cut"],
+      default: "filters",
+    },
+
+    //UC-02: trecho pedido (em segundos), só usado quando operation = "cut".
+    cut: {
+      start_seconds: { type: Number, default: null },
+      end_seconds: { type: Number, default: null },
+    },
+
+    //UC-02: operações avançadas reservadas, devolvidas se falhar/cancelar.
+    reserved_ops: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     filters: {
   type: [videoFilterSchema],
-  required: true,
+  required: function () {
+    return this.operation === "filters";
+  },
   validate: {
-    validator: (filters) => {
+    validator: function (filters) {
+      //UC-02: o corte não tem filtros.
+      if (this.operation !== "filters") {
+        return true;
+      }
+
       if (!Array.isArray(filters) || filters.length === 0) {
         return false;
       }

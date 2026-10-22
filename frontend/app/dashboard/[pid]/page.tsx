@@ -46,6 +46,7 @@ import { getErrorMessage } from "@/lib/error-messages";
 import { PresetsDialog } from "@/components/presets/presets-dialog";
 import { AiAssistantDialog } from "@/components/assistant/ai-assistant-dialog";
 import { VideoFiltersPanel } from "@/components/project-page/video-filters-panel";
+import { VideoCutPanel } from "@/components/project-page/video-cut-panel";
 
 export default function Project({
   params,
@@ -63,6 +64,8 @@ export default function Project({
   const mode = searchParams.get("mode") ?? "edit";
   //AB Separar a experiência de vídeo do editor de imagens.
   const videoEditor = searchParams.get("editor") === "video";
+  //UC-02: ferramenta de vídeo ativa (filtros ou corte).
+  const videoTool = searchParams.get("tool") === "cut" ? "cut" : "filters";
   // se vier ?owner=... usamos esse userId, senão usamos o próprio utilizador (owner normal)
   const ownerId = searchParams.get("owner") ?? session.user._id;
   const shareId = searchParams.get("share") ?? undefined;
@@ -623,6 +626,19 @@ const handleCancel = () => {
               const q = new URLSearchParams(searchParams.toString()); q.set("editor", "video");
               router.push(`${path}?${q}`);
             }}><Film className="mr-2 size-4" />Vídeos</Button>
+            {videoEditor && (
+              <>
+                <span className="mx-1 w-px self-stretch bg-border" aria-hidden="true" />
+                <Button type="button" size="sm" variant={videoTool === "filters" ? "secondary" : "ghost"} onClick={() => {
+                  const q = new URLSearchParams(searchParams.toString()); q.delete("tool");
+                  router.push(`${path}?${q}`);
+                }}>Filtros</Button>
+                <Button type="button" size="sm" variant={videoTool === "cut" ? "secondary" : "ghost"} onClick={() => {
+                  const q = new URLSearchParams(searchParams.toString()); q.set("tool", "cut");
+                  router.push(`${path}?${q}`);
+                }}>Cortar</Button>
+              </>
+            )}
           </nav>
         )}
         {/* Header */}
@@ -838,7 +854,17 @@ const handleCancel = () => {
           </div>
         </div>
         {/* AB: UC-03 visível apenas ao proprietário; preserva o editor de imagens. */}
-        {videoEditor && (!shareId || !shareRevoked) && (
+        {videoEditor && videoTool === "cut" && !shareId && session.user._id === ownerId && (
+          <VideoCutPanel
+            userId={session.user._id}
+            projectId={pid}
+            token={session.token}
+            version={project.data.version}
+            serverDuration={project.data.video?.duration_seconds ?? null}
+            onUploaded={async () => { await project.refetch(); }}
+          />
+        )}
+        {videoEditor && videoTool === "filters" && (!shareId || !shareRevoked) && (
           <VideoFiltersPanel
             userId={ownerId}
             shareId={shareId}
