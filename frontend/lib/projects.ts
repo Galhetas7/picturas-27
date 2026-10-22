@@ -25,14 +25,25 @@ export interface Project {
   version: number;
 }
 
+export interface ProjectVideo {
+  original_key: string;
+  original_name: string;
+  mime_type: "video/mp4";
+  size_bytes: number;
+  duration_seconds: number;
+  width: number;
+  height: number;
+  uploaded_at?: string | Date;
+}
+
 export interface SingleProject {
   _id: string;
   user_id: string;
   name: string;
   tools: ProjectToolResponse[];
   imgs: ProjectImage[];
+  video?: ProjectVideo | null;
   version: number;
-
 }
 export interface ProjectImage {
   _id: string;
@@ -143,6 +154,7 @@ export const resolveShareLink = async (shareId: string) => {
     ownerId: string;
     permission: "read" | "edit";
     projectName?: string;
+    isVideo?: boolean;
     
   };
 };

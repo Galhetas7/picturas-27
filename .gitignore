@@ -12,6 +12,12 @@ backups/
 # ficheiros de ambiente locais (nunca devem ir para o repo)
 .env
 
-# cache do Python
-__pycache__/
-*.py[cod]
+   # Python (para as ferramentas em Tools/)
+   __pycache__/
+   *.py[cod]
+
+   # Vídeos de teste (nunca devem ir para o repo)
+   *.mp4
+   *.mov
+   *.webm
+   *.mkv
